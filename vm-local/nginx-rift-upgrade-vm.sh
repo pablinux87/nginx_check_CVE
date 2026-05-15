@@ -55,6 +55,13 @@ HAS_UBUNTU_MODS=0
 if dpkg -l 'libnginx-mod-*' 2>/dev/null | grep -q '^ii'; then
   HAS_UBUNTU_MODS=1
   echo "Detectados paquetes libnginx-mod-* (brotli, geoip, etc.)."
+  NGX_DEB="$(dpkg -l nginx 2>/dev/null | awk '/^ii/{print $3}')"
+  if echo "$NGX_DEB" | grep -qi sury; then
+    echo "ERROR: NGINX instalado desde PPA Sury (deb.sury.org)." >&2
+    echo "  Usar primero: sudo ./nginx-rift-upgrade-apt.sh" >&2
+    echo "  Solo nginx.org si apt no tiene >= $MIN_FIXED: $0 --safe --ack-module-risk" >&2
+    exit 1
+  fi
   if [[ $ACK_MODULES -eq 0 && $DRY -eq 0 ]]; then
     echo "ERROR: en producción con módulos Ubuntu usar:" >&2
     echo "  sudo $0 --safe --ack-module-risk" >&2

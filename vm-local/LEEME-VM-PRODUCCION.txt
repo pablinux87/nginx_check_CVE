@@ -1,6 +1,20 @@
 VM DE PRODUCCIÓN (multiplica.com y varios vhosts) — CVE NGINX Rift
 ====================================================================
 
+MULTIPLICA USA PPA SURY (deb.sury.org)
+--------------------------------------
+  dpkg muestra: 1.24.0-1+ubuntu22.04.1+deb.sury.org+1
+  user nginx: guillo (socket PHP-FPM también guillo — NO cambiar a www-data)
+  Módulos: brotli, geoip, etc. vía libnginx-mod-* de Sury
+
+  ORDEN DE PREFERENCIA PARA PARCHEAR:
+    1) sudo ./nginx-rift-upgrade-apt.sh     (si apt Candidate >= 1.30.1)
+    2) Esperar a que Sury publique 1.30.1+ en el PPA
+    3) nginx-rift-upgrade-vm.sh --safe      (nginx.org — pierde módulos Sury; último recurso)
+
+  El preflight "ROTO" en módulos era un falso positivo si nginx -t OK.
+  RESULTADO=PREFLIGHT_AVISO (exit 2) = se puede planificar, no es bloqueo.
+
 QUÉ VALIDA EL INFORME (nginx-rift-report.sh)
 --------------------------------------------
   SÍ valida:
@@ -31,9 +45,16 @@ ANTES DE TOCAR multiplica (OBLIGATORIO)
      - Si avisa brotli/módulos → leer sección BROTTLI abajo
   4. Guardar informe pre: ./nginx-rift-report.sh -o /home/nginx-rift-pre.txt
 
-UPGRADE SEGURO (lección star.it + multiplica)
----------------------------------------------
-El paquete nginx.org reemplaza nginx.conf y quita módulos Ubuntu.
+UPGRADE VÍA APT (multiplica / Sury) — PREFERIDO
+-----------------------------------------------
+  sudo ./nginx-rift-preflight-vm.sh
+  apt-cache policy nginx | head -8
+  sudo ./nginx-rift-upgrade-apt.sh --dry-run
+  sudo ./nginx-rift-upgrade-apt.sh
+
+UPGRADE nginx.org (star.it y VMs sin Sury) — último recurso
+-----------------------------------------------------------
+El paquete nginx.org reemplaza nginx.conf y quita módulos Ubuntu/Sury.
 
   sudo ./nginx-rift-upgrade-vm.sh --dry-run
   sudo ./nginx-rift-upgrade-vm.sh --safe
