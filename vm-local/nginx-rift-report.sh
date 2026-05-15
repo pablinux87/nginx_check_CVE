@@ -130,6 +130,22 @@ FECHA="$(date -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || date '+%Y-%m-%d %H:%M:%
       REWRITE_OK="CORREGIR"
       REWRITE_ACCION="Sustituir \$1,\$2 por capturas nombradas (?<id>). Ver rewrite-mitigation-example.conf"
     fi
+  else
+    # nginx -T falló o sin permisos: revisar archivos .conf legibles a mano
+    manual_hits=0
+    if [[ -d /etc/nginx ]]; then
+      while IFS= read -r line; do
+        [[ -n "$line" ]] && manual_hits=$((manual_hits+1))
+      done < <(grep -rnE '^[[:space:]]*rewrite[[:space:]]+.*\$[0-9].*\?' /etc/nginx/ 2>/dev/null | grep -v '^#' || true)
+    fi
+    MATCHES=$manual_hits
+    if [[ "$manual_hits" -eq 0 ]]; then
+      REWRITE_OK="REVISAR_MANUAL"
+      REWRITE_ACCION="nginx -T no disponible; grep manual en /etc/nginx sin coincidencias del patrón CVE (confirmar tras arreglar nginx -t)."
+    else
+      REWRITE_OK="CORREGIR"
+      REWRITE_ACCION="Patrón CVE detectado por grep en archivos bajo /etc/nginx (sin nginx -T completo)."
+    fi
   fi
 
   echo "3. CONFIGURACIÓN REWRITE"
@@ -164,10 +180,13 @@ FECHA="$(date -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || date '+%Y-%m-%d %H:%M:%
   echo ""
 
   echo "5. nginx -t"
+  NGINX_T_OK="no"
   if "$NGX_PATH" -t 2>&1 | sed 's/^/   /'; then
     echo "   Sintaxis: OK"
+    NGINX_T_OK="yes"
   else
-    echo "   Sintaxis: revisar errores"
+    echo "   Sintaxis: FALLO — la config no es válida o falta un módulo (ej. brotli)."
+    echo "   Mientras falle nginx -t, nginx -T no vuelca toda la config para el chequeo CVE."
   fi
   echo ""
 
@@ -181,6 +200,14 @@ FECHA="$(date -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || date '+%Y-%m-%d %H:%M:%
     echo "   $step) Corregir rewrites en archivos de sección 3 y recargar nginx"
     step=$((step+1))
   fi
+  if [[ "$NGINX_T_OK" == "no" ]]; then
+    echo "   $step) Corregir error nginx -t (revisar /etc/nginx/conf.d/*.conf, ej. directiva brotli sin módulo)"
+    step=$((step+1))
+  fi
+  if [[ "$REWRITE_OK" == "REVISAR_MANUAL" || "$REWRITE_OK" == "NO REVISADO" ]]; then
+    echo "   $step) Tras arreglar nginx -t, volver a ejecutar ./nginx-rift-report.sh"
+    step=$((step+1))
+  fi
   if [[ "$ASLR_OK" == "MAL" || "$ASLR_OK" == "PARCIAL" ]]; then
     echo "   $step) Ajustar ASLR a 2 en el SO"
     step=$((step+1))
@@ -191,10 +218,12 @@ FECHA="$(date -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || date '+%Y-%m-%d %H:%M:%
   fi
   echo ""
 
-  if [[ "$NEED_UPDATE" == "NO" && "$REWRITE_OK" == "CORRECTA" && "$ASLR_OK" == "OK" ]]; then
+  if [[ "$NEED_UPDATE" == "NO" && "$REWRITE_OK" == "CORRECTA" && "$ASLR_OK" == "OK" && "$NGINX_T_OK" == "yes" ]]; then
     VEREDICTO="OK"
   elif [[ "$NEED_UPDATE" == "SÍ" && "$MATCHES" -gt 0 ]]; then
     VEREDICTO="URGENTE"
+  elif [[ "$NGINX_T_OK" == "no" || "$REWRITE_OK" == "NO REVISADO" || "$REWRITE_OK" == "REVISAR_MANUAL" ]]; then
+    VEREDICTO="REVISAR"
   elif [[ "$NEED_UPDATE" == "SÍ" ]]; then
     VEREDICTO="PARCHE_PLATAFORMA"
   else
@@ -205,8 +234,9 @@ FECHA="$(date -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || date '+%Y-%m-%d %H:%M:%
   echo " VEREDICTO_FINAL=$VEREDICTO"
   case "$VEREDICTO" in
     OK) echo " Todo controlado en esta instancia para CVE-2026-42945." ;;
-    PARCHE_PLATAFORMA) echo " Config OK; falta actualizar versión NGINX (acción platform/Azure)." ;;
+    PARCHE_PLATAFORMA) echo " Config revisada OK; falta actualizar versión NGINX (platform/Azure)." ;;
     URGENTE) echo " Versión vulnerable + rewrites a corregir." ;;
+    REVISAR) echo " Config NO cerrada: arreglar nginx -t y/o re-ejecutar informe." ;;
     *) echo " Revisar secciones anteriores." ;;
   esac
   echo "================================================================================"
