@@ -29,7 +29,9 @@ command -v nginx >/dev/null 2>&1 && NGX=nginx
 
 dump="$("$NGX" -T 2>/dev/null)" || dump="$(sudo -n "$NGX" -T 2>/dev/null)" || dump=""
 if [[ -n "$dump" ]]; then
-  n="$(echo "$dump" | grep -cE '^[[:space:]]*rewrite[[:space:]]+.*\$[0-9].*\?' || echo 0)"
+  n=$(echo "$dump" | grep -cE '^[[:space:]]*rewrite[[:space:]]+.*\$[0-9].*\?' 2>/dev/null || true)
+  n="${n//[^0-9]/}"
+  n="${n:-0}"
   echo "Rewrites sospechosos: $n"
   echo "$dump" | grep -nE '^[[:space:]]*rewrite[[:space:]]+.*\$[0-9].*\?' | head -20
   echo ""

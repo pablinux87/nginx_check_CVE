@@ -1,38 +1,22 @@
-CVE-2026-42945 (NGINX Rift) — Guía Multiplica
-==============================================
+CVE-2026-42945 — Guía Multiplica
+==================================
 
-FLUJO PRINCIPAL (sin SSH batch)
--------------------------------
+FASE 1 — Desde tu PC (dominios públicos)
+  Editar domains.txt → docker compose run --rm scanner
+  → reporte-externo.csv (veredicto por dominio)
 
-FASE 1 — Triaje desde tu PC (dominio público)
-  1. Editar domains.txt (una URL por línea)
-  2. Desde la carpeta nginx-rift:
-       docker compose run --rm scanner
-     O sin Docker (Git Bash/WSL):
-       ./nginx-rift-scan-external.sh -f domains.txt -c reporte-externo.csv
-  3. Abrir reporte-externo.csv y leer columna "veredicto":
-       PUEDE_SER_VULNERABLE   → entrar a la VM (KUDU) y ejecutar chequeo local
-       REVISAR_DESDE_DENTRO   → idem
-       NO_PARECE_VULNERABLE   → bajo riesgo según headers (no cierra auditoría al 100%)
-       INDETERMINADO          → CDN/proxy; revisar origen si aplica
+FASE 2 — Dentro de cada App Service (KUDU)
+  apt-get update -qq && apt-get install -y git
+  cd /home
+  git clone https://github.com/pablinux87/nginx_check_CVE.git
+  cd /home/nginx_check_CVE && git pull && cd vm-local
+  chmod +x nginx-rift-*.sh
+  ./nginx-rift-report.sh -o /home/nginx-rift-reporte.txt
 
-FASE 2 — Pruebas reales DENTRO de cada VM (KUDU)
-  1. Subir carpeta vm-local/ al App Service / VM
-  2. Seguir vm-local/LEEME-KUDU.txt
-  3. ./nginx-rift-check.sh → leer VEREDICTO_LOCAL
-  4. Si VULNERABLE: mitigate → editar nginx → patch → verify
+  El informe cubre: versión, ASLR, rewrites, logs, acciones para ticket.
+  Adjuntar nginx-rift-reporte.txt al mail de platform.
 
-ARCHIVOS
---------
-  domains.txt                  — URLs públicas (entrada principal)
-  nginx-rift-scan-external.sh  — scanner HTTP + PoC --check-only
-  docker-compose.yml           — scanner en contenedor
-  reporte-externo.csv          — salida fase 1
-  vm-local/                    — scripts para KUDU / consola en la VM
-
-LEGACY (opcional, solo si tienes SSH homogéneo)
-  hosts.txt, nginx-rift-scan.sh -f hosts.txt -u USER
-
-NO usar exploit activo (--cmd, heap spray) en producción.
-
-Referencias: F5 K000161019 | https://nginx.org/en/security_advisories.html
+VEREDICTO_FINAL en KUDU:
+  PARCHE_PLATAFORMA = config OK pero nginx < 1.30.1 (pedir parche a platform)
+  URGENTE = versión + rewrites mal
+  OK = todo bien en esa instancia

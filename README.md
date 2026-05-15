@@ -1,29 +1,19 @@
-# nginx_check_CVE — CVE-2026-42945 (NGINX Rift)
+# nginx_check_CVE — CVE-2026-42945
 
-Kit de comprobación y mitigación para **CVE-2026-42945**.
-
-## Escaneo rápido desde tu PC
+## KUDU (informe para platform)
 
 ```bash
-# Editar domains.txt con tus URLs
-docker compose run --rm scanner
-# o: ./nginx-rift-scan-external.sh -f domains.txt -c reporte-externo.csv
-```
-
-Ver `reporte-externo.csv` → columnas `veredicto` / `mensaje`.
-
-## Pruebas dentro de la VM (KUDU / Azure App Service)
-
-Usar la carpeta **`vm-local/`**:
-
-```bash
+apt-get update -qq && apt-get install -y git
+cd /home && git clone https://github.com/pablinux87/nginx_check_CVE.git
+cd /home/nginx_check_CVE && git pull && cd vm-local
 chmod +x nginx-rift-*.sh
-./nginx-rift-check.sh
+./nginx-rift-report.sh -o /home/nginx-rift-reporte.txt
 ```
 
-Detalle: [vm-local/LEEME-KUDU.txt](vm-local/LEEME-KUDU.txt)
+## Scan externo (PC)
 
-## Referencias
+```bash
+docker compose run --rm scanner
+```
 
-- [F5 K000161019](https://my.f5.com/manage/s/article/K000161019)
-- [nginx security advisories](https://nginx.org/en/security_advisories.html)
+Ver [vm-local/LEEME-KUDU.txt](vm-local/LEEME-KUDU.txt)

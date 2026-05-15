@@ -1,40 +1,29 @@
-CVE-2026-42945 — Pruebas DENTRO de la VM (KUDU / consola local)
-===============================================================
+CVE-2026-42945 — KUDU / App Service
+====================================
 
-Cuándo usar esto
-----------------
-Tras el escaneo externo (reporte-externo.csv), para sitios con:
-  PUEDE_SER_VULNERABLE  o  REVISAR_DESDE_DENTRO
-
-Subir scripts a KUDU
---------------------
-1. Azure Portal → App Service → Advanced Tools (KUDU) → Go
-2. Debug console → Bash (Linux) o CMD
-3. Subir esta carpeta vm-local/ (ZIP o archivos sueltos a /home/site/wwwroot o /tmp)
-
-Ejecutar
---------
-cd /home/site/wwwroot    # o donde hayas subido los .sh
+Comandos (en orden)
+-------------------
+apt-get update -qq && apt-get install -y git
+cd /home
+git clone https://github.com/pablinux87/nginx_check_CVE.git
+cd /home/nginx_check_CVE
+git pull
+cd vm-local
 chmod +x nginx-rift-*.sh
-./nginx-rift-check.sh
 
-Interpretar VEREDICTO_LOCAL
----------------------------
-  VULNERABLE      → Parchear y/o mitigar (mitigate → editar nginx → patch → verify)
-  NO_VULNERABLE   → Cerrar para este host (si confías en nginx -T leído)
-  REVISAR         → NGINX no en PATH (común en App Service) o config ilegible
+# Informe completo (adjuntar al mail platform):
+./nginx-rift-report.sh -o /home/nginx-rift-reporte.txt
 
-Orden recomendado si VULNERABLE
--------------------------------
-  ./nginx-rift-mitigate.sh [--apply-aslr]
-  # Editar rewrites: usar capturas ?<nombre> en lugar de $1, $2
-  nginx -t && nginx -s reload   # o sudo
-  sudo ./nginx-rift-patch.sh    # si tienes permisos; si no, ticket a platform
-  ./nginx-rift-verify.sh
+# O solo en pantalla:
+./nginx-rift-report.sh
 
-Azure App Service
------------------
-- Si "NGINX no encontrado": el frontal puede ser de plataforma → escalar a platform@multiplica.com
-- KUDU suele NO tener sudo ni systemctl → patch.sh indicará abrir ticket
+El informe incluye:
+  1. Versión NGINX y si hay que actualizar (SÍ/NO)
+  2. ASLR (qué es + estado + acción)
+  3. Config rewrite (CORRECTA / CORREGIR + archivos y líneas)
+  4. Logs (crashes signal 11)
+  5. nginx -t
+  6. Lista de acciones para ticket
+  VEREDICTO_FINAL: OK | PARCHE_PLATAFORMA | URGENTE | REVISAR
 
-Referencias: F5 K000161019 | https://nginx.org/en/security_advisories.html
+Referencias: F5 K000161019 | nginx.org security advisories
