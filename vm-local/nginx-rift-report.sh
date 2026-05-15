@@ -190,10 +190,17 @@ FECHA="$(date -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || date '+%Y-%m-%d %H:%M:%
   fi
   echo ""
 
-  echo "6. ACCIONES PARA TICKET PLATFORM"
+  if [[ "$IS_APP_SERVICE" -eq 1 ]]; then
+    echo "6. ACCIONES PARA TICKET PLATFORM"
+  else
+    echo "6. ACCIONES (VM / servidor propio)"
+  fi
   step=1
-  if [[ "$NEED_UPDATE" == "SÍ" ]]; then
-    echo "   $step) Parchear frontal NGINX $VERSION → >= $MIN_FIXED (host: $HOST_LABEL)"
+  if [[ "$NEED_UPDATE" == "SÍ" && "$IS_APP_SERVICE" -eq 1 ]]; then
+    echo "   $step) Parchear frontal NGINX $VERSION → >= $MIN_FIXED (host: $HOST_LABEL) — platform/Azure"
+    step=$((step+1))
+  elif [[ "$NEED_UPDATE" == "SÍ" ]]; then
+    echo "   $step) Parchear NGINX $VERSION → >= $MIN_FIXED: preflight + upgrade --safe (ver LEEME-VM-PRODUCCION.txt)"
     step=$((step+1))
   fi
   if [[ "$REWRITE_OK" == "CORREGIR" ]]; then
@@ -218,12 +225,17 @@ FECHA="$(date -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || date '+%Y-%m-%d %H:%M:%
   fi
   echo ""
 
+  IS_APP_SERVICE=0
+  [[ -n "${WEBSITE_SITE_NAME:-}" || -n "${WEBSITE_HOSTNAME:-}" ]] && IS_APP_SERVICE=1
+
   if [[ "$NEED_UPDATE" == "NO" && "$REWRITE_OK" == "CORRECTA" && "$ASLR_OK" == "OK" && "$NGINX_T_OK" == "yes" ]]; then
     VEREDICTO="OK"
   elif [[ "$NEED_UPDATE" == "SÍ" && "$MATCHES" -gt 0 ]]; then
     VEREDICTO="URGENTE"
   elif [[ "$NGINX_T_OK" == "no" || "$REWRITE_OK" == "NO REVISADO" || "$REWRITE_OK" == "REVISAR_MANUAL" ]]; then
     VEREDICTO="REVISAR"
+  elif [[ "$NEED_UPDATE" == "SÍ" && "$IS_APP_SERVICE" -eq 0 ]]; then
+    VEREDICTO="PARCHE_VM"
   elif [[ "$NEED_UPDATE" == "SÍ" ]]; then
     VEREDICTO="PARCHE_PLATAFORMA"
   else
@@ -235,6 +247,7 @@ FECHA="$(date -u '+%Y-%m-%d %H:%M:%S UTC' 2>/dev/null || date '+%Y-%m-%d %H:%M:%
   case "$VEREDICTO" in
     OK) echo " Todo controlado en esta instancia para CVE-2026-42945." ;;
     PARCHE_PLATAFORMA) echo " Config revisada OK; falta actualizar versión NGINX (platform/Azure)." ;;
+    PARCHE_VM) echo " Config revisada OK; falta upgrade en VM (sudo nginx-rift-upgrade-vm.sh --safe)." ;;
     URGENTE) echo " Versión vulnerable + rewrites a corregir." ;;
     REVISAR) echo " Config NO cerrada: arreglar nginx -t y/o re-ejecutar informe." ;;
     *) echo " Revisar secciones anteriores." ;;
@@ -250,7 +263,7 @@ rm -f "$TMP"
 
 case "$VEREDICTO" in
   OK) exit 0 ;;
-  PARCHE_PLATAFORMA) exit 2 ;;
+  PARCHE_PLATAFORMA|PARCHE_VM) exit 2 ;;
   URGENTE) exit 3 ;;
   *) exit 1 ;;
 esac

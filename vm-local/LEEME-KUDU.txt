@@ -26,10 +26,12 @@ El informe incluye:
   6. Lista de acciones para ticket
   VEREDICTO_FINAL: OK | PARCHE_PLATAFORMA | URGENTE | REVISAR
 
-VM propia (con sudo) — actualizar NGINX
----------------------------------------
-  sudo ./nginx-rift-upgrade-vm.sh --dry-run
-  sudo ./nginx-rift-upgrade-vm.sh
-  ./nginx-rift-report.sh
+VM propia / PRODUCCIÓN (multiplica, varios vhosts) — LEEME-VM-PRODUCCION.txt
+-----------------------------------------------------------------------------
+  sudo ./nginx-rift-preflight-vm.sh
+  ./nginx-rift-report.sh -o /home/nginx-rift-pre.txt
+  sudo ./nginx-rift-upgrade-vm.sh --safe --ack-module-risk   # si hay brotli
+  sudo ./nginx-rift-postflight-vm.sh /etc/nginx.backup.TIMESTAMP
+  ./nginx-rift-report.sh -o /home/nginx-rift-post.txt
 
 Referencias: F5 K000161019 | nginx.org security advisories

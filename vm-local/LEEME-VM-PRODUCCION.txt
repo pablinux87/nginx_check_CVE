@@ -1,0 +1,76 @@
+VM DE PRODUCCIÓN (multiplica.com y varios vhosts) — CVE NGINX Rift
+====================================================================
+
+QUÉ VALIDA EL INFORME (nginx-rift-report.sh)
+--------------------------------------------
+  SÍ valida:
+    - Versión NGINX vs CVE (necesita >= 1.30.1)
+    - ASLR del kernel
+    - Patrón rewrite peligroso del CVE (en config que carga nginx -T)
+    - nginx -t (sintaxis y módulos cargables)
+    - Logs recientes SIGSEGV / signal 11
+    - Lista de archivos de config activos
+
+  NO valida (hay que hacerlo aparte):
+    - Que cada dominio público responda 200 en HTTPS
+    - Caducidad / renovación Let's Encrypt
+    - Que brotli siga activo tras el upgrade
+    - Rendimiento ni contenido de las webs
+
+VEREDICTO PARCHE_PLATAFORMA en multiplica.ar
+--------------------------------------------
+En VM propia NO es “ticket Azure”: significa “config OK, falta subir versión”.
+Usar los scripts de esta carpeta con sudo, no KUDU.
+
+ANTES DE TOCAR multiplica (OBLIGATORIO)
+---------------------------------------
+  1. Ventana de mantenimiento + aviso interno
+  2. Snapshot / backup VM en Azure (además del backup del script)
+  3. sudo ./nginx-rift-preflight-vm.sh
+     - Si PREFLIGHT_FALLO → no actualizar
+     - Si avisa brotli/módulos → leer sección BROTTLI abajo
+  4. Guardar informe pre: ./nginx-rift-report.sh -o /home/nginx-rift-pre.txt
+
+UPGRADE SEGURO (lección star.it + multiplica)
+---------------------------------------------
+El paquete nginx.org reemplaza nginx.conf y quita módulos Ubuntu.
+
+  sudo ./nginx-rift-upgrade-vm.sh --dry-run
+  sudo ./nginx-rift-upgrade-vm.sh --safe
+
+--safe hace:
+  - cp -a /etc/nginx → /etc/nginx.backup.TIMESTAMP
+  - apt install nginx.org >= 1.30.1
+  - Restaura nginx.conf y snippets/ del backup (como hiciste a mano en star.it)
+  - Desactiva conf.d/default.conf de bienvenida
+  - nginx -t; si falla, indica rollback
+
+  sudo ./nginx-rift-postflight-vm.sh /etc/nginx.backup.TIMESTAMP
+  ./nginx-rift-report.sh -o /home/nginx-rift-post.txt
+
+ROLLBACK SI ALGO SALE MAL
+-------------------------
+  sudo cp /etc/nginx.backup.XXXXXXXX/nginx.conf /etc/nginx/nginx.conf
+  sudo nginx -t && sudo systemctl reload nginx
+
+  (El binario 1.30.1 puede quedarse; solo revierte layout/includes/user.)
+
+BROTTLI Y modules-enabled (multiplica tiene varios)
+---------------------------------------------------
+nginx.org NO trae libnginx-mod-brotli de Ubuntu.
+
+Si tras --safe nginx -t dice "unknown directive brotli":
+  A) Corto plazo: mover a modules-enabled.disabled/ los .conf de brotli
+     y comentar directivas brotli en vhosts (sitio sirve sin compresión brotli).
+  B) Medio plazo: compilar módulo para nginx 1.30.1 o esperar backport Ubuntu.
+
+NO ejecutar upgrade en horario pico sin probar en staging idéntico.
+
+ORDEN RECOMENDADO PARA ESTE SERVIDOR
+------------------------------------
+  1. preflight
+  2. report pre
+  3. upgrade --safe
+  4. postflight (curl Host headers)
+  5. Probar manual: www.multiplica.com, multiplicalite.com, staging (HTTPS)
+  6. report post → VEREDICTO_FINAL=OK
