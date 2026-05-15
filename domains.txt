@@ -1,0 +1,24 @@
+# Dominios Multiplica — CVE-2026-42945 (una URL por línea, sin duplicar www/bare)
+# Sitios públicos
+https://www.thegbfoodseurope.com
+https://www.elpavo.es
+https://www.erasco.de
+https://www.gbf-gb.com
+https://www.gallinablanca.es
+https://www.garciamillan.es
+https://www.garciamillan.fr
+https://garciamillan.be
+https://www.heisse-tasse.de
+https://www.liebig.fr
+https://www.royco.be
+https://www.yatekomo.com
+https://www.yatekomo.es
+https://www.lacroix.de
+https://www.star.it
+https://www.tiempodechefs.es
+# Azure App Service (hostnames directos)
+https://dlbedphp-d4dqcjexg6dhasdc.westeurope-01.azurewebsites.net
+https://dlbepphp-agg8fzbgeshfd5ec.westeurope-01.azurewebsites.net
+https://gallinadpatt-gbfydqggbkhrbkcn.germanywestcentral-01.azurewebsites.net
+https://granditaliadphp-exewf5g8b7afesfu.germanywestcentral-01.azurewebsites.net
+https://yatekomodphp-b7hda7g9e2aqa3hd.westeurope-01.azurewebsites.net

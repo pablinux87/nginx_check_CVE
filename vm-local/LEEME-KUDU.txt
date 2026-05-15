@@ -1,0 +1,40 @@
+CVE-2026-42945 — Pruebas DENTRO de la VM (KUDU / consola local)
+===============================================================
+
+Cuándo usar esto
+----------------
+Tras el escaneo externo (reporte-externo.csv), para sitios con:
+  PUEDE_SER_VULNERABLE  o  REVISAR_DESDE_DENTRO
+
+Subir scripts a KUDU
+--------------------
+1. Azure Portal → App Service → Advanced Tools (KUDU) → Go
+2. Debug console → Bash (Linux) o CMD
+3. Subir esta carpeta vm-local/ (ZIP o archivos sueltos a /home/site/wwwroot o /tmp)
+
+Ejecutar
+--------
+cd /home/site/wwwroot    # o donde hayas subido los .sh
+chmod +x nginx-rift-*.sh
+./nginx-rift-check.sh
+
+Interpretar VEREDICTO_LOCAL
+---------------------------
+  VULNERABLE      → Parchear y/o mitigar (mitigate → editar nginx → patch → verify)
+  NO_VULNERABLE   → Cerrar para este host (si confías en nginx -T leído)
+  REVISAR         → NGINX no en PATH (común en App Service) o config ilegible
+
+Orden recomendado si VULNERABLE
+-------------------------------
+  ./nginx-rift-mitigate.sh [--apply-aslr]
+  # Editar rewrites: usar capturas ?<nombre> en lugar de $1, $2
+  nginx -t && nginx -s reload   # o sudo
+  sudo ./nginx-rift-patch.sh    # si tienes permisos; si no, ticket a platform
+  ./nginx-rift-verify.sh
+
+Azure App Service
+-----------------
+- Si "NGINX no encontrado": el frontal puede ser de plataforma → escalar a platform@multiplica.com
+- KUDU suele NO tener sudo ni systemctl → patch.sh indicará abrir ticket
+
+Referencias: F5 K000161019 | https://nginx.org/en/security_advisories.html

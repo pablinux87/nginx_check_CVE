@@ -1,0 +1,15 @@
+services:
+  scanner:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - .:/data
+    working_dir: /data
+    command:
+      - -f
+      - /data/domains.txt
+      - -c
+      - /data/reporte-externo.csv
+      - --poc-dir
+      - /opt/poc

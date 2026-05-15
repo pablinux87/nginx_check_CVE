@@ -1,0 +1,6 @@
+# Reportes locales (no subir)
+*.csv
+credentials.csv
+
+# Legacy / local
+reporte-*.csv
