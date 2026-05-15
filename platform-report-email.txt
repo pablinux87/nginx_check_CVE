@@ -1,0 +1,28 @@
+Asunto: Inventario NGINX — CVE-2026-42945 (NGINX Rift) — revisión platform
+
+Hola equipo Platform,
+
+Estamos ejecutando la remediación de CVE-2026-42945 (NGINX Rift) en nuestras VMs.
+
+Adjunto / referencia: reporte-rift-pre.csv (scan de versión, patrón rewrite y ASLR).
+
+Por favor confirmar o completar el inventario de hosts con NGINX que no figuren en nuestra lista:
+- VMs prod/stage/balanceadores
+- Orígenes detrás de CDN
+- NGINX en contenedores Docker sobre esas VMs
+
+Hosts que conocemos (actualizar en hosts.txt):
+[PEGAR LISTA DE HOSTNAMES/IPs]
+
+Acciones en curso:
+1. Scan con nginx-rift-scan.sh
+2. Mitigación ASLR + rewrites con capturas nombradas donde aplique
+3. Parcheo a NGINX 1.30.1+ / 1.31.0+ con restart (no solo reload)
+
+Referencias:
+- F5 K000161019: https://my.f5.com/manage/s/article/K000161019
+- nginx.org advisories: https://nginx.org/en/security_advisories.html
+
+Gracias,
+[Nombre]
+[Equipo]

@@ -1,0 +1,3 @@
+# LEGACY — solo si tienes el mismo usuario SSH en todos los hosts
+# Flujo principal: domains.txt + vm-local/ vía KUDU
+# localhost
